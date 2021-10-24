@@ -1,0 +1,4 @@
+/result
+.direnv
+/hostname.nix
+node_modules
