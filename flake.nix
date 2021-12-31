@@ -30,7 +30,6 @@
           modules = [
             remote-flake-template.nixosModule
             remote-flake-template.nixosModules.secret
-            remote-flake-template.nixosModules.backup
             "${nixpkgs}/nixos/modules/profiles/hardened.nix"
             ./hardware/netcup.nix
             # Actual definition apart from template configuration
@@ -50,10 +49,26 @@
                 };
               };
 
+              #NOTE Set up backup repository with port forwarding local machine
+              # services.restic.backups.vaultwarden = {
+              # repository =
+              # "rest:http://${secret.ip.midway}:44444/vaultwarden/";
+              # initialize = true;
+              # paths = [ "/var/lib/vaultwarden" ];
+              # timerConfig = { onCalendar = "Monday 11:00"; };
+              # passwordFile = "";
+              # };
+
               services.nginx.virtualHosts.${secret.hostname.otp} = {
                 forceSSL = true;
                 enableACME = true;
                 locations."/" = { proxyPass = "http://localhost:30624"; };
+              };
+              
+              services.nginx.virtualHosts.${secret.hostname.pdf-service} = {
+                forceSSL = true;
+                enableACME = true;
+                locations."/" = { proxyPass = "http://localhost:30628"; };
               };
 
               # services.nginx.virtualHosts.${secret.hostname.music} = {
@@ -63,9 +78,9 @@
               # };
 
               # services.nginx.virtualHosts.${secret.hostname.sso} = {
-                # forceSSL = true;
-                # enableACME = true;
-                # locations."/" = { proxyPass = "http://localhost:30626"; };
+              # forceSSL = true;
+              # enableACME = true;
+              # locations."/" = { proxyPass = "http://localhost:30626"; };
               # };
 
               security.acme = { email = "hugosum.dev@protonmail.com"; };
@@ -100,12 +115,34 @@
                 ports = [ "30625:80" ];
                 volumes = [ "/var/lib/vaultwarden/:/data/" ];
               };
-              
-              # virtualisation.oci-containers.containers.sso = {
-                # image = "vaultwarden/server:latest";
-                # ports = [ "30626:80" ];
-                # volumes = [ "/var/lib/vaultwarden/:/data/" ];
-              # };
+
+              system.activationScripts.mkMeiliSearchVolume =
+                lib.stringAfter [ "var" ] ''
+                  mkdir -p /var/lib/meilisearch.ms
+                '';
+
+              services.nginx.virtualHosts.${secret.hostname.search} = {
+                forceSSL = true;
+                enableACME = true;
+                locations."/" = { proxyPass = "http://localhost:30627"; };
+              };
+
+              virtualisation.oci-containers.containers.search = {
+                image = "getmeili/meilisearch:latest";
+                ports = [ "30627:7700" ];
+                environment = {
+                  MEILI_NO_ANALYTICS = "true";
+                  MEILI_ENV = "production";
+                  MEILI_MASTER_KEY = "foobar";
+                };
+                volumes = [ "/var/lib/meilisearch.ms/:/data.ms/" ];
+              };
+
+              virtualisation.oci-containers.containers.pdf-service = {
+                image = "winston0410/pdf-service:latest";
+                # registry = "https://index.docker.io/v2/";
+                ports = [ "30628:3001" ];
+              };
             })
           ];
         });
