@@ -9,6 +9,12 @@ My homelab configuration. Everything is reproducible with the help of Nix and Ni
 nix run github:serokell/deploy-rs
 ```
 
+To deploy without rollback, do this:
+
+```sh
+deploy --magic-rollback false
+```
+
 ## Tools used
 
 [deploy-rs](https://github.com/serokell/deploy-rs)
