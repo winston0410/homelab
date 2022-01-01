@@ -93,18 +93,20 @@
                 otp-server.file = ./.env/netcup/otp-server.age;
               };
 
-              virtualisation.oci-containers.containers.telegram-bot = {
-                image = "localhost/telegram-bot:latest";
-                imageFile = life-builder.packages.${system}.image;
-                environmentFiles = [ config.age.secrets.telegram-bot.path ];
-              };
+              #NOTE Not in use
+              # virtualisation.oci-containers.containers.telegram-bot = {
+                # image = "localhost/telegram-bot:latest";
+                # imageFile = life-builder.packages.${system}.image;
+                # environmentFiles = [ config.age.secrets.telegram-bot.path ];
+              # };
 
-              virtualisation.oci-containers.containers.otp = {
-                image = "localhost/otp-server:latest";
-                imageFile = otp-server.packages.${system}.image;
-                environmentFiles = [ config.age.secrets.otp-server.path ];
-                ports = [ "30624:30624" ];
-              };
+              #NOTE Not in use
+              # virtualisation.oci-containers.containers.otp = {
+                # image = "localhost/otp-server:latest";
+                # imageFile = otp-server.packages.${system}.image;
+                # environmentFiles = [ config.age.secrets.otp-server.path ];
+                # ports = [ "30624:30624" ];
+              # };
 
               system.activationScripts.mkVwVolume = lib.stringAfter [ "var" ] ''
                 mkdir -p /var/lib/vaultwarden
