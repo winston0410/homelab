@@ -141,7 +141,7 @@
               };
 
               virtualisation.oci-containers.containers.pdf-service = {
-                image = "winston0410/pdf-service:latest";
+                image = "winston0410/pdf-service:35713b9";
                 # registry = "https://index.docker.io/v2/";
                 ports = [ "30628:3001" ];
               };
