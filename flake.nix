@@ -49,6 +49,20 @@
                 };
               };
 
+              # Email server in docker
+              #NOTE https://hub.docker.com/r/mailserver/docker-mailserver
+
+              # For ecommerce
+              #NOTE https://github.com/solidusio/solidus
+
+              #NOTE https://hub.docker.com/r/valeriansaliou/vigil
+
+              #NOTE https://hub.docker.com/r/linuxserver/wireguard
+
+              #NOTE https://github.com/revoltchat
+
+              #NOTE https://github.com/orhun/rustypaste
+
               #NOTE Set up backup repository with port forwarding local machine
               # services.restic.backups.vaultwarden = {
               # repository =
@@ -59,12 +73,12 @@
               # passwordFile = "";
               # };
 
-              services.nginx.virtualHosts.${secret.hostname.otp} = {
-                forceSSL = true;
-                enableACME = true;
-                locations."/" = { proxyPass = "http://localhost:30624"; };
-              };
-              
+              # services.nginx.virtualHosts.${secret.hostname.otp} = {
+              # forceSSL = true;
+              # enableACME = true;
+              # locations."/" = { proxyPass = "http://localhost:30624"; };
+              # };
+
               services.nginx.virtualHosts.${secret.hostname.pdf-service} = {
                 forceSSL = true;
                 enableACME = true;
@@ -88,24 +102,23 @@
               users.users.admin.openssh.authorizedKeys.keyFiles =
                 [ secret.keys.id_ed25519 ];
 
-              age.secrets = {
-                telegram-bot.file = ./.env/netcup/life-builder.age;
-                otp-server.file = ./.env/netcup/otp-server.age;
-              };
-
               #NOTE Not in use
+              # age.secrets.telegram-bot.file = ./.env/netcup/life-builder.age;
+              
               # virtualisation.oci-containers.containers.telegram-bot = {
-                # image = "localhost/telegram-bot:latest";
-                # imageFile = life-builder.packages.${system}.image;
-                # environmentFiles = [ config.age.secrets.telegram-bot.path ];
+              # image = "localhost/telegram-bot:latest";
+              # imageFile = life-builder.packages.${system}.image;
+              # environmentFiles = [ config.age.secrets.telegram-bot.path ];
               # };
 
               #NOTE Not in use
+              # age.secrets.otp-server.file = ./.env/netcup/otp-server.age;
+              
               # virtualisation.oci-containers.containers.otp = {
-                # image = "localhost/otp-server:latest";
-                # imageFile = otp-server.packages.${system}.image;
-                # environmentFiles = [ config.age.secrets.otp-server.path ];
-                # ports = [ "30624:30624" ];
+              # image = "localhost/otp-server:latest";
+              # imageFile = otp-server.packages.${system}.image;
+              # environmentFiles = [ config.age.secrets.otp-server.path ];
+              # ports = [ "30624:30624" ];
               # };
 
               system.activationScripts.mkVwVolume = lib.stringAfter [ "var" ] ''
@@ -144,6 +157,77 @@
                 image = "winston0410/pdf-service:35713b9";
                 # registry = "https://index.docker.io/v2/";
                 ports = [ "30628:3001" ];
+              };
+
+              services.nginx.virtualHosts.${secret.hostname.accent} = {
+                forceSSL = true;
+                enableACME = true;
+                locations."/" = { proxyPass = "http://localhost:30629"; };
+              };
+
+              # system.activationScripts.mkAccentVolume = lib.stringAfter [ "var" ] ''
+              # mkdir -p /var/lib/accent
+              # '';
+
+              # system.activationScripts.mkAccent = let
+              # docker = config.virtualisation.oci-containers.backend;
+              # dockerBin = "${pkgs.${docker}}/bin/${docker}";
+              # in ''
+              # ${dockerBin} network inspect accent >/dev/null 2>&1 || ${dockerBin} network create accent --subnet 172.21.0.0/16
+              # '';
+
+              # virtualisation.oci-containers.containers.accent = {
+              # image = "mirego/accent:v1.9.1";
+              # ports = [ "30629:4000" ];
+              # environment = {
+              # PORT = 4000;
+              # DATABASE_URL =
+              # "postgres://postgres:password@postgresql:5432/accent_development";
+              # DUMMY_LOGIN_ENABLED = true;
+              # };
+              # extraOptions = [ "--network=accent" ];
+              # };
+
+              virtualisation.oci-containers.containers.postgres = {
+                image = "postgres:14.1";
+                environment = {
+                  POSTGRES_DB = "accent_development";
+                  POSTGRES_PASSWORD = "password";
+                };
+                volumes = [ "/var/lib/accent:/var/lib/postgresql/data" ];
+                extraOptions = [ "--network=accent" ];
+              };
+
+              system.activationScripts.mkWireguardVolume =
+                lib.stringAfter [ "var" ] ''
+                  mkdir -p /var/lib/wireguard
+                  mkdir -p /etc/wireguard
+                '';
+
+              services.nginx.virtualHosts.${secret.hostname.wireguard} = {
+                forceSSL = true;
+                enableACME = true;
+                locations."/" = { proxyPass = "http://localhost:30630"; };
+              };
+
+              virtualisation.oci-containers.containers.wireguard = {
+                image = "linuxserver/wireguard:1.0.20210914";
+                environment = {
+                  TZ = "Europe/London";
+                  SERVERURL = secret.hostname.wireguard;
+                  SERVERPORT = "30630";
+                  PEERS = "1";
+                };
+                ports = [ "51820:51820/udp" ];
+                volumes = [
+                  "/var/lib/wireguard:/lib/modules"
+                  "/etc/wireguard:/config"
+                ];
+                extraOptions = [
+                  "--cap-add=NET_ADMIN"
+                  "--cap-add=SYS_MODULE"
+                  "--sysctl='net.ipv4.conf.all.src_valid_mark=1'"
+                ];
               };
             })
           ];
