@@ -34,7 +34,8 @@
             ./hardware/netcup.nix
             # Actual definition apart from template configuration
             ({ pkgs, config, lib, ... }: {
-              boot.kernelPackages = with pkgs; linuxPackages_5_14;
+              #NOTE Use the latest kernel for wireguard module
+              boot.kernelPackages = with pkgs; linuxPackages_latest;
 
               environment.systemPackages = with pkgs; [ ];
 
@@ -217,6 +218,8 @@
                   SERVERURL = secret.hostname.wireguard;
                   SERVERPORT = "30630";
                   PEERS = "1";
+                  PUID = "0";
+                  PGID = "0";
                 };
                 ports = [ "51820:51820/udp" ];
                 volumes = [
@@ -226,7 +229,7 @@
                 extraOptions = [
                   "--cap-add=NET_ADMIN"
                   "--cap-add=SYS_MODULE"
-                  "--sysctl='net.ipv4.conf.all.src_valid_mark=1'"
+                  # "--sysctl='net.ipv4.conf.all.src_valid_mark=1'"
                 ];
               };
             })
