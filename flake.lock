@@ -280,11 +280,11 @@
         "nixpkgs": "nixpkgs_5"
       },
       "locked": {
-        "lastModified": 1641714295,
-        "narHash": "sha256-puvex00Bn/w0gsvJU+gvAVqgJprMu+NKFd5wQ2Ez1+U=",
+        "lastModified": 1641726223,
+        "narHash": "sha256-d/6adhvnr6ClBB3+1ZTcXKNHq4AjPKUQd2QCG+kbb5I=",
         "owner": "winston0410",
         "repo": "remote-flake-template",
-        "rev": "ae229f72693560a5a7da4f1e09746f38c7545fee",
+        "rev": "5c3589ca53c6ca94f096cd82f233ee9c0954ade8",
         "type": "github"
       },
       "original": {
@@ -350,7 +350,7 @@
     },
     "secret": {
       "locked": {
-        "narHash": "sha256-T+K9+uHVj5ckMl1amRNJdc3m/fyKcs7J1yVhnksZhKA=",
+        "narHash": "sha256-ByRD43bllXb4a66cK2nD4cP+tDG0VAJBr+PUT0KVd/k=",
         "path": "/home/hugosum/secret",
         "type": "path"
       },

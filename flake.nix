@@ -29,8 +29,8 @@
           inherit system;
           modules = [
             (remote-flake-template.nixosModule {
-                email = "hugosum.dev@protonmail.com";
-                sshKeys = [ secret.keys.id_ed25519 ];
+              email = "hugosum.dev@protonmail.com";
+              sshKeys = [ secret.keys.id_ed25519 ];
             })
             remote-flake-template.nixosModules.secret
             "${nixpkgs}/nixos/modules/profiles/hardened.nix"
@@ -39,10 +39,6 @@
             ({ pkgs, config, lib, ... }: {
               #NOTE Use the latest kernel for wireguard module
               boot.kernelPackages = with pkgs; linuxPackages_latest;
-
-              environment.systemPackages = with pkgs; [ ];
-
-              networking.firewall.allowedTCPPorts = [ 80 443 ];
 
               services.nginx.virtualHosts.${secret.hostname.pwd} = {
                 forceSSL = true;
@@ -102,7 +98,6 @@
               # enableACME = true;
               # locations."/" = { proxyPass = "http://localhost:30626"; };
               # };
-
 
               #NOTE Not in use
               # age.secrets.telegram-bot.file = ./.env/netcup/life-builder.age;
@@ -243,18 +238,31 @@
           inherit system;
           modules = [
             (remote-flake-template.nixosModule {
-                email = "hugosum.dev@protonmail.com";
-                sshKeys = [ secret.keys.id_ed25519 ];
+              email = "hugosum.dev@protonmail.com";
+              sshKeys = [ secret.keys.id_ed25519 ];
             })
             remote-flake-template.nixosModules.secret
             "${nixpkgs}/nixos/modules/profiles/hardened.nix"
             ./hardware/oracle1.nix
             ({ pkgs, config, lib, ... }: {
               boot.kernelPackages = with pkgs; linuxPackages_latest;
+            })
+          ];
+        });
 
-              environment.systemPackages = with pkgs; [ ];
-
-              networking.firewall.allowedTCPPorts = [ 80 443 ];
+        oracle2 = let system = "x86_64-linux";
+        in (nixpkgs.lib.nixosSystem {
+          inherit system;
+          modules = [
+            (remote-flake-template.nixosModule {
+              email = "hugosum.dev@protonmail.com";
+              sshKeys = [ secret.keys.id_ed25519 ];
+            })
+            remote-flake-template.nixosModules.secret
+            "${nixpkgs}/nixos/modules/profiles/hardened.nix"
+            ./hardware/oracle1.nix
+            ({ pkgs, config, lib, ... }: {
+              boot.kernelPackages = with pkgs; linuxPackages_latest;
             })
           ];
         });
@@ -276,6 +284,15 @@
           sshUser = "root";
           path = deploy-rs.lib.x86_64-linux.activate.nixos
             self.nixosConfigurations.oracle1;
+        };
+      };
+
+      deploy.nodes.oracle2 = {
+        hostname = secret.ip.oracle2;
+        profiles.system = {
+          sshUser = "root";
+          path = deploy-rs.lib.x86_64-linux.activate.nixos
+            self.nixosConfigurations.oracle2;
         };
       };
 
