@@ -28,7 +28,10 @@
         in (nixpkgs.lib.nixosSystem {
           inherit system;
           modules = [
-            remote-flake-template.nixosModule
+            (remote-flake-template.nixosModule {
+                email = "hugosum.dev@protonmail.com";
+                sshKeys = [ secret.keys.id_ed25519 ];
+            })
             remote-flake-template.nixosModules.secret
             "${nixpkgs}/nixos/modules/profiles/hardened.nix"
             ./hardware/netcup.nix
@@ -49,6 +52,8 @@
                   proxyWebsockets = true;
                 };
               };
+
+              #NOTE Set up backup with sftp with restic
 
               # Email server in docker
               #NOTE https://hub.docker.com/r/mailserver/docker-mailserver
@@ -98,14 +103,10 @@
               # locations."/" = { proxyPass = "http://localhost:30626"; };
               # };
 
-              security.acme = { email = "hugosum.dev@protonmail.com"; };
-
-              users.users.admin.openssh.authorizedKeys.keyFiles =
-                [ secret.keys.id_ed25519 ];
 
               #NOTE Not in use
               # age.secrets.telegram-bot.file = ./.env/netcup/life-builder.age;
-              
+
               # virtualisation.oci-containers.containers.telegram-bot = {
               # image = "localhost/telegram-bot:latest";
               # imageFile = life-builder.packages.${system}.image;
@@ -114,7 +115,7 @@
 
               #NOTE Not in use
               # age.secrets.otp-server.file = ./.env/netcup/otp-server.age;
-              
+
               # virtualisation.oci-containers.containers.otp = {
               # image = "localhost/otp-server:latest";
               # imageFile = otp-server.packages.${system}.image;
@@ -235,6 +236,28 @@
             })
           ];
         });
+
+        #NOTE Use for storing backup for netcup
+        oracle1 = let system = "x86_64-linux";
+        in (nixpkgs.lib.nixosSystem {
+          inherit system;
+          modules = [
+            (remote-flake-template.nixosModule {
+                email = "hugosum.dev@protonmail.com";
+                sshKeys = [ secret.keys.id_ed25519 ];
+            })
+            remote-flake-template.nixosModules.secret
+            "${nixpkgs}/nixos/modules/profiles/hardened.nix"
+            ./hardware/oracle1.nix
+            ({ pkgs, config, lib, ... }: {
+              boot.kernelPackages = with pkgs; linuxPackages_latest;
+
+              environment.systemPackages = with pkgs; [ ];
+
+              networking.firewall.allowedTCPPorts = [ 80 443 ];
+            })
+          ];
+        });
       };
 
       deploy.nodes.netcup = {
@@ -244,6 +267,15 @@
           sshUser = "root";
           path = deploy-rs.lib.x86_64-linux.activate.nixos
             self.nixosConfigurations.netcup;
+        };
+      };
+
+      deploy.nodes.oracle1 = {
+        hostname = secret.ip.oracle1;
+        profiles.system = {
+          sshUser = "root";
+          path = deploy-rs.lib.x86_64-linux.activate.nixos
+            self.nixosConfigurations.oracle1;
         };
       };
 
