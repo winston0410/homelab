@@ -40,6 +40,11 @@
               #NOTE Use the latest kernel for wireguard module
               boot.kernelPackages = with pkgs; linuxPackages_latest;
 
+              # Extra cert for using single domain name in multiple devices
+              # security.acme.certs.${secret.hostname.acme} = {
+              # email = "hugosum.dev@protonmail.com";
+              # };
+
               services.nginx.virtualHosts.${secret.hostname.pwd} = {
                 forceSSL = true;
                 enableACME = true;
@@ -126,6 +131,17 @@
                 image = "vaultwarden/server:latest";
                 ports = [ "30625:80" ];
                 volumes = [ "/var/lib/vaultwarden/:/data/" ];
+              };
+
+              #TODO Use the correct password file
+              age.secrets.restic-rest-server-passwd.file = ./.env/restic-rest-server-passwd.age;
+
+              services.restic.backups.vaultwarden = {
+                initialize = true;
+                repository = "/tmp/backup/vaultwarden";
+                paths = [ "/var/lib/vaultwarden" ];
+                timerConfig = { OnCalendar = "daily"; };
+                passwordFile = config.age.secrets.restic-rest-server-passwd.path;
               };
 
               system.activationScripts.mkMeiliSearchVolume =
@@ -233,6 +249,8 @@
         });
 
         #NOTE Use for storing backup for netcup
+        #NOTE oracle free tier may have inconsistent kernel modules behavior, check with 
+        # lsmod | grep veth
         oracle1 = let system = "x86_64-linux";
         in (nixpkgs.lib.nixosSystem {
           inherit system;
@@ -246,6 +264,25 @@
             ./hardware/oracle1.nix
             ({ pkgs, config, lib, ... }: {
               boot.kernelPackages = with pkgs; linuxPackages_latest;
+              # services.nginx.virtualHosts.${secret.hostname.backup} = {
+              # forceSSL = true;
+              # locations."/" = { proxyPass = "http://localhost:20000"; };
+              # };
+            })
+            ({ pkgs, lib, config, ... }: {
+              system.activationScripts.mkBackupVolume =
+                lib.stringAfter [ "var" ] ''
+                  mkdir -p /var/lib/backup
+                  cp ${secret.keys.htpasswd} /var/lib/backup/.htpasswd
+                '';
+
+              #TODO How to get htpasswd binary in Nix?
+              virtualisation.oci-containers.containers.restic-server = {
+                image = "restic/rest-server:0.10.0";
+                ports = [ "20000:8000" ];
+                environment = { OPTIONS = "--append-only"; };
+                volumes = [ "/var/lib/backup:/data" ];
+              };
             })
           ];
         });
@@ -260,7 +297,7 @@
             })
             remote-flake-template.nixosModules.secret
             "${nixpkgs}/nixos/modules/profiles/hardened.nix"
-            ./hardware/oracle1.nix
+            ./hardware/oracle2.nix
             ({ pkgs, config, lib, ... }: {
               boot.kernelPackages = with pkgs; linuxPackages_latest;
             })
