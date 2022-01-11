@@ -7,7 +7,8 @@ let
 
   keyList = [ rsa ed25519 ];
 in {
-  "life-builder.age".publicKeys = keyList;
-  "otp-server.age".publicKeys = keyList;
+  "./netcup/life-builder.age".publicKeys = keyList;
+  "./netcup/otp-server.age".publicKeys = keyList;
   "restic-repository-passwd.age".publicKeys = keyList;
+  "calendso.age".publicKeys = keyList;
 }
