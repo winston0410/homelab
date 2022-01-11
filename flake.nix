@@ -134,14 +134,14 @@
               };
 
               #TODO Use the correct password file
-              age.secrets.restic-rest-server-passwd.file = ./.env/restic-rest-server-passwd.age;
+              age.secrets.restic-repository-passwd.file = ./.env/restic-repository-passwd.age;
 
               services.restic.backups.vaultwarden = {
                 initialize = true;
                 repository = "/tmp/backup/vaultwarden";
                 paths = [ "/var/lib/vaultwarden" ];
                 timerConfig = { OnCalendar = "daily"; };
-                passwordFile = config.age.secrets.restic-rest-server-passwd.path;
+                passwordFile = config.age.secrets.restic-repository-passwd.path;
               };
 
               system.activationScripts.mkMeiliSearchVolume =

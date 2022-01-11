@@ -9,5 +9,5 @@ let
 in {
   "life-builder.age".publicKeys = keyList;
   "otp-server.age".publicKeys = keyList;
-  "restic-rest-server-passwd.age".publicKeys = keyList;
+  "restic-repository-passwd.age".publicKeys = keyList;
 }
