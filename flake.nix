@@ -332,6 +332,12 @@
                   cp ${secret.keys.htpasswd} /var/lib/backup/.htpasswd
                 '';
 
+              services.nginx.virtualHosts.${secret.hostname.backup} = {
+                # forceSSL = true;
+                # enableACME = true;
+                locations."/" = { proxyPass = "http://localhost:20000"; };
+              };
+
               #TODO How to get htpasswd binary in Nix?
               virtualisation.oci-containers.containers.restic-server = {
                 image = "restic/rest-server:0.10.0";
@@ -378,6 +384,7 @@
           path = deploy-rs.lib.x86_64-linux.activate.nixos
             self.nixosConfigurations.oracle1;
         };
+        fastConnection = true;
       };
 
       deploy.nodes.oracle2 = {
