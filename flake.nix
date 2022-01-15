@@ -115,18 +115,14 @@
                     NEXT_PUBLIC_APP_URL = "http://localhost:3000";
                     # "postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@172.23.0.2:5432/calendso";
                   };
-                  environmentFiles = [
-                    config.age.secrets.calendso.path
-                  ];
+                  environmentFiles = [ config.age.secrets.calendso.path ];
                   extraOptions = [ "--network=calendso" ];
                   dependsOn = [ "calendso-postgres" ];
                 };
 
                 virtualisation.oci-containers.containers.calendso-postgres = {
                   image = "postgres:14.1";
-                  environmentFiles = [
-                    config.age.secrets.calendso.path
-                  ];
+                  environmentFiles = [ config.age.secrets.calendso.path ];
                   volumes = [ "/var/lib/calendso:/var/lib/postgresql/data" ];
                   extraOptions = [ "--network=calendso" "--ip=172.23.0.2" ];
                 };
@@ -363,6 +359,48 @@
             ({ pkgs, config, lib, ... }: {
               boot.kernelPackages = with pkgs; linuxPackages_latest;
             })
+            ({ pkgs, lib, config, ... }:
+              let
+                mkDockerNetwork = { ip, name }:
+                  let
+                    docker = config.virtualisation.oci-containers.backend;
+                    dockerBin = "${pkgs.${docker}}/bin/${docker}";
+                  in ''
+                    ${dockerBin} network inspect ${name} >/dev/null 2>&1 || ${dockerBin} network create ${name} --subnet ${ip}
+                  '';
+              in {
+                system.activationScripts.mkNocodbVolume =
+                  lib.stringAfter [ "var" ] ''
+                    mkdir -p /var/lib/nocodb
+                  '';
+
+                system.activationScripts.mkNetwork = mkDockerNetwork {
+                  ip = "172.24.0.0/16";
+                  name = "nocodb";
+                };
+
+                # Backend for nocodb. Do not need to forward port
+                virtualisation.oci-containers.containers.nocodb = {
+                  image = "nocodb/nocodb:latest";
+                  environment = {
+                    DATABASE_URL =
+                      "postgres://postgres:password@nocodb-postgres:5432/accent";
+                  };
+                  extraOptions = [ "--network=nocodb" ];
+                  dependsOn = [ "nocodb-postgres" ];
+                };
+
+                virtualisation.oci-containers.containers.nocodb-postgres = {
+                  image = "postgres:14.1";
+                  environment = {
+                    POSTGRES_DB = "nocodb";
+                    POSTGRES_USER = "postgres";
+                    POSTGRES_PASSWORD = "password";
+                  };
+                  volumes = [ "/var/lib/nocodb:/var/lib/postgresql/data" ];
+                  extraOptions = [ "--network=nocodb" ];
+                };
+              })
           ];
         });
       };
