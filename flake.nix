@@ -16,12 +16,16 @@
 
     otp-server = { url = "github:winston0410/otp-server"; };
 
+    jyutping-microservice = {
+      url = "path:/home/hugosum/jyutping-tools/microservice";
+    };
+
     #NOTE Save secret locally
     secret = { url = "path:/home/hugosum/secret"; };
   };
 
   outputs = { self, nixpkgs, deploy-rs, remote-flake-template, flake-utils
-    , life-builder, otp-server, secret, ... }:
+    , life-builder, otp-server, secret, jyutping-microservice, ... }:
     (nixpkgs.lib.attrsets.recursiveUpdate {
       nixosConfigurations = {
         netcup = let system = "x86_64-linux";
@@ -78,6 +82,15 @@
                 # extraOptions = [ "--network=accent" ];
                 # };
               })
+            ({ pkgs, config, lib, ... }: {
+                #FIXME Investigate why acme-certs doesn't work
+                #REF https://discourse.nixos.org/t/how-to-use-security-acme-certs-and-useacmehost-correctly/17208
+              security.acme.certs.${secret.hostname.acme} = {
+                webroot = "/var/lib/acme/acme-challenge/";
+                email = "hugosum.dev@protonmail.com";
+                extraDomainNames = [ secret.hostname.pwd ];
+              };
+            })
             ({ pkgs, config, lib, ... }:
               let
                 mkDockerNetwork = ip: name:
@@ -148,6 +161,7 @@
               services.nginx.virtualHosts.${secret.hostname.pwd} = {
                 forceSSL = true;
                 enableACME = true;
+                # useACMEHost = secret.hostname.acme;
                 locations."/" = {
                   proxyPass = "http://localhost:30625";
                   proxyWebsockets = true;
@@ -369,37 +383,43 @@
                     ${dockerBin} network inspect ${name} >/dev/null 2>&1 || ${dockerBin} network create ${name} --subnet ${ip}
                   '';
               in {
-                system.activationScripts.mkNocodbVolume =
-                  lib.stringAfter [ "var" ] ''
-                    mkdir -p /var/lib/nocodb
-                  '';
+                # system.activationScripts.mkNocodbVolume =
+                # lib.stringAfter [ "var" ] ''
+                # mkdir -p /var/lib/nocodb
+                # '';
 
-                system.activationScripts.mkNetwork = mkDockerNetwork {
-                  ip = "172.24.0.0/16";
-                  name = "nocodb";
-                };
+                # system.activationScripts.mkNetwork = mkDockerNetwork {
+                # ip = "172.24.0.0/16";
+                # name = "nocodb";
+                # };
 
-                # Backend for nocodb. Do not need to forward port
-                virtualisation.oci-containers.containers.nocodb = {
-                  image = "nocodb/nocodb:latest";
-                  environment = {
-                    DATABASE_URL =
-                      "postgres://postgres:password@nocodb-postgres:5432/accent";
-                  };
-                  extraOptions = [ "--network=nocodb" ];
-                  dependsOn = [ "nocodb-postgres" ];
-                };
+                # services.nginx.virtualHosts.${secret.hostname.nocodb} = {
+                # forceSSL = true;
+                # enableACME = true;
+                # locations."/" = { proxyPass = "http://localhost:8000"; };
+                # };
 
-                virtualisation.oci-containers.containers.nocodb-postgres = {
-                  image = "postgres:14.1";
-                  environment = {
-                    POSTGRES_DB = "nocodb";
-                    POSTGRES_USER = "postgres";
-                    POSTGRES_PASSWORD = "password";
-                  };
-                  volumes = [ "/var/lib/nocodb:/var/lib/postgresql/data" ];
-                  extraOptions = [ "--network=nocodb" ];
-                };
+                # virtualisation.oci-containers.containers.nocodb = {
+                # image = "nocodb/nocodb:latest";
+                # environment = {
+                # DATABASE_URL =
+                # "postgres://postgres:password@172.24.0.3:5432/accent";
+                # };
+                # ports = [ "8000:8000" ];
+                # extraOptions = [ "--network=nocodb" ];
+                # dependsOn = [ "nocodb-postgres" ];
+                # };
+
+                # virtualisation.oci-containers.containers.nocodb-postgres = {
+                # image = "postgres:14.1";
+                # environment = {
+                # POSTGRES_DB = "nocodb";
+                # POSTGRES_USER = "postgres";
+                # POSTGRES_PASSWORD = "password";
+                # };
+                # volumes = [ "/var/lib/nocodb:/var/lib/postgresql/data" ];
+                # extraOptions = [ "--network=nocodb" "--ip=172.24.0.3" ];
+                # };
               })
           ];
         });
@@ -432,6 +452,7 @@
           path = deploy-rs.lib.x86_64-linux.activate.nixos
             self.nixosConfigurations.oracle2;
         };
+        fastConnection = true;
       };
 
       checks = builtins.mapAttrs
