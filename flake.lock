@@ -454,7 +454,7 @@
     },
     "secret": {
       "locked": {
-        "narHash": "sha256-zEE/x522ALDfMvpNJY8NXwt/IAbM8ITf70275gFDbxo=",
+        "narHash": "sha256-PpqEGk8KWaNxRfNoLIZTdStQet6D20TOtCQYkbktWa4=",
         "path": "/home/hugosum/secret",
         "type": "path"
       },

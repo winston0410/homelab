@@ -38,192 +38,33 @@
             "${nixpkgs}/nixos/modules/profiles/hardened.nix"
             ./hardware/netcup.nix
             # Actual definition apart from template configuration
-            ({ pkgs, config, lib, ... }:
-              {
-
-                # services.nginx.virtualHosts.${secret.hostname.accent} = {
-                # forceSSL = true;
-                # enableACME = true;
-                # locations."/" = { proxyPass = "http://localhost:30629"; };
-                # };
-
-                # system.activationScripts.mkAccentVolume = lib.stringAfter [ "var" ] ''
-                # mkdir -p /var/lib/accent
-                # '';
-
-                # system.activationScripts.mkAccent = let
-                # docker = config.virtualisation.oci-containers.backend;
-                # dockerBin = "${pkgs.${docker}}/bin/${docker}";
-                # in ''
-                # ${dockerBin} network inspect accent >/dev/null 2>&1 || ${dockerBin} network create accent --subnet 172.21.0.0/16
-                # '';
-
-                # virtualisation.oci-containers.containers.accent = {
-                # image = "mirego/accent:v1.9.1";
-                # ports = [ "30629:4000" ];
-                # environment = {
-                # PORT = 4000;
-                # DATABASE_URL =
-                # "postgres://postgres:password@postgresql:5432/accent_development";
-                # DUMMY_LOGIN_ENABLED = true;
-                # };
-                # extraOptions = [ "--network=accent" ];
-                # };
-
-                # virtualisation.oci-containers.containers.postgres = {
-                # image = "postgres:14.1";
-                # environment = {
-                # POSTGRES_DB = "accent_development";
-                # POSTGRES_PASSWORD = "password";
-                # };
-                # volumes = [ "/var/lib/accent:/var/lib/postgresql/data" ];
-                # extraOptions = [ "--network=accent" ];
-                # };
-              })
-            ({ pkgs, config, lib, ... }: {
-              #FIXME Investigate why acme-certs doesn't work
-              #REF https://discourse.nixos.org/t/how-to-use-security-acme-certs-and-useacmehost-correctly/17208
-              security.acme.certs.${secret.hostname.acme} = {
-                webroot = "/var/lib/acme/acme-challenge/";
-                email = "hugosum.dev@protonmail.com";
-                extraDomainNames = [ secret.hostname.pwd ];
-              };
-            })
-            ({ pkgs, config, lib, ... }:
-              let
-                mkDockerNetwork = ip: name:
-                  let
-                    docker = config.virtualisation.oci-containers.backend;
-                    dockerBin = "${pkgs.${docker}}/bin/${docker}";
-                  in ''
-                    ${dockerBin} network inspect ${name} >/dev/null 2>&1 || ${dockerBin} network create ${name} --subnet ${ip}
-                  '';
-              in {
-                services.nginx.virtualHosts.${secret.hostname.booking} = {
-                  forceSSL = true;
-                  enableACME = true;
-                  locations."/" = {
-                    proxyPass = "http://localhost:40000";
-                    proxyWebsockets = true;
-                  };
-                };
-
-                system.activationScripts.mkCalendsoVolume =
-                  lib.stringAfter [ "var" ] ''
-                    mkdir -p /var/lib/calendso
-                  '';
-
-                system.activationScripts.mkCalendsoNetwork =
-                  mkDockerNetwork "172.23.0.0/16" "calendso";
-
-                age.secrets.calendso.file = ./.env/calendso.age;
-
-                virtualisation.oci-containers.containers.calendso = {
-                  image = "calendso/calendso:latest";
-                  ports = [ "40000:3000" ];
-                  environment = {
-                    BASE_URL = "http://localhost:3000";
-                    NEXT_PUBLIC_APP_URL = "http://localhost:3000";
-                    # "postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@172.23.0.2:5432/calendso";
-                  };
-                  environmentFiles = [ config.age.secrets.calendso.path ];
-                  extraOptions = [ "--network=calendso" ];
-                  dependsOn = [ "calendso-postgres" ];
-                };
-
-                virtualisation.oci-containers.containers.calendso-postgres = {
-                  image = "postgres:14.1";
-                  environmentFiles = [ config.age.secrets.calendso.path ];
-                  volumes = [ "/var/lib/calendso:/var/lib/postgresql/data" ];
-                  extraOptions = [ "--network=calendso" "--ip=172.23.0.2" ];
-                };
-
-                services.restic.backups.calendso = {
-                  initialize = true;
-                  repository = "/tmp/backup/calendso";
-                  paths = [ "/var/lib/calendso" ];
-                  timerConfig = { OnCalendar = "daily"; };
-                  passwordFile =
-                    config.age.secrets.restic-repository-passwd.path;
-                };
-              })
+            # ({ pkgs, config, lib, ... }: {
+            # #FIXME Investigate why acme-certs doesn't work
+            # #REF https://discourse.nixos.org/t/how-to-use-security-acme-certs-and-useacmehost-correctly/17208
+            # security.acme.certs.${secret.hostname.acme} = {
+            # webroot = "/var/lib/acme/acme-challenge/";
+            # email = "hugosum.dev@protonmail.com";
+            # extraDomainNames = [ secret.hostname.pwd ];
+            # };
+            # })
             ({ pkgs, config, lib, ... }: {
               #NOTE Use the latest kernel for wireguard module
               boot.kernelPackages = with pkgs; linuxPackages_latest;
 
-              # Extra cert for using single domain name in multiple devices
-              # security.acme.certs.${secret.hostname.acme} = {
-              # email = "hugosum.dev@protonmail.com";
-              # };
-
               services.nginx.virtualHosts.${secret.hostname.pwd} = {
                 forceSSL = true;
                 enableACME = true;
-                # useACMEHost = secret.hostname.acme;
                 locations."/" = {
                   proxyPass = "http://localhost:30625";
                   proxyWebsockets = true;
                 };
               };
 
-              #NOTE Set up backup with sftp with restic
-
-              # Email server in docker
-              #NOTE https://hub.docker.com/r/mailserver/docker-mailserver
-
-              # For ecommerce
-              #NOTE https://github.com/solidusio/solidus
-
-              #NOTE https://hub.docker.com/r/valeriansaliou/vigil
-
-              #NOTE https://hub.docker.com/r/linuxserver/wireguard
-
-              #NOTE https://github.com/revoltchat
-
-              #NOTE https://github.com/orhun/rustypaste
-
-              # services.nginx.virtualHosts.${secret.hostname.otp} = {
-              # forceSSL = true;
-              # enableACME = true;
-              # locations."/" = { proxyPass = "http://localhost:30624"; };
-              # };
-
               services.nginx.virtualHosts.${secret.hostname.pdf-service} = {
                 forceSSL = true;
                 enableACME = true;
                 locations."/" = { proxyPass = "http://localhost:30628"; };
               };
-
-              # services.nginx.virtualHosts.${secret.hostname.music} = {
-              # forceSSL = true;
-              # enableACME = true;
-              # locations."/" = { proxyPass = "http://localhost:30626"; };
-              # };
-
-              # services.nginx.virtualHosts.${secret.hostname.sso} = {
-              # forceSSL = true;
-              # enableACME = true;
-              # locations."/" = { proxyPass = "http://localhost:30626"; };
-              # };
-
-              #NOTE Not in use
-              # age.secrets.telegram-bot.file = ./.env/netcup/life-builder.age;
-
-              # virtualisation.oci-containers.containers.telegram-bot = {
-              # image = "localhost/telegram-bot:latest";
-              # imageFile = life-builder.packages.${system}.image;
-              # environmentFiles = [ config.age.secrets.telegram-bot.path ];
-              # };
-
-              #NOTE Not in use
-              # age.secrets.otp-server.file = ./.env/netcup/otp-server.age;
-
-              # virtualisation.oci-containers.containers.otp = {
-              # image = "localhost/otp-server:latest";
-              # imageFile = otp-server.packages.${system}.image;
-              # environmentFiles = [ config.age.secrets.otp-server.path ];
-              # ports = [ "30624:30624" ];
-              # };
 
               system.activationScripts.mkVwVolume = lib.stringAfter [ "var" ] ''
                 mkdir -p /var/lib/vaultwarden
@@ -271,43 +112,10 @@
 
               virtualisation.oci-containers.containers.pdf-service = {
                 image = "winston0410/pdf-service:35713b9";
-                # registry = "https://index.docker.io/v2/";
                 ports = [ "30628:3001" ];
               };
 
-              system.activationScripts.mkWireguardVolume =
-                lib.stringAfter [ "var" ] ''
-                  mkdir -p /var/lib/wireguard
-                  mkdir -p /etc/wireguard
-                '';
-
-              services.nginx.virtualHosts.${secret.hostname.wireguard} = {
-                forceSSL = true;
-                enableACME = true;
-                locations."/" = { proxyPass = "http://localhost:30630"; };
-              };
-
-              virtualisation.oci-containers.containers.wireguard = {
-                image = "linuxserver/wireguard:1.0.20210914";
-                environment = {
-                  TZ = "Europe/London";
-                  SERVERURL = secret.hostname.wireguard;
-                  SERVERPORT = "30630";
-                  PEERS = "1";
-                  PUID = "0";
-                  PGID = "0";
-                };
-                ports = [ "51820:51820/udp" ];
-                volumes = [
-                  "/var/lib/wireguard:/lib/modules"
-                  "/etc/wireguard:/config"
-                ];
-                extraOptions = [
-                  "--cap-add=NET_ADMIN"
-                  "--cap-add=SYS_MODULE"
-                  # "--sysctl='net.ipv4.conf.all.src_valid_mark=1'"
-                ];
-              };
+              networking.firewall.allowPing = lib.mkForce true;
             })
           ];
         });
@@ -328,32 +136,34 @@
             ./hardware/oracle1.nix
             ({ pkgs, config, lib, ... }: {
               boot.kernelPackages = with pkgs; linuxPackages_latest;
-              # services.nginx.virtualHosts.${secret.hostname.backup} = {
-              # forceSSL = true;
-              # locations."/" = { proxyPass = "http://localhost:20000"; };
-              # };
             })
-            ({ pkgs, lib, config, ... }: {
-              system.activationScripts.mkBackupVolume =
-                lib.stringAfter [ "var" ] ''
-                  mkdir -p /var/lib/backup
-                  cp ${secret.keys.htpasswd} /var/lib/backup/.htpasswd
-                '';
-
-              services.nginx.virtualHosts.${secret.hostname.backup} = {
+            ({ pkgs, lib, config, ... }:
+              {
+                # services.nginx.virtualHosts.${secret.hostname.backup} = {
                 # forceSSL = true;
-                # enableACME = true;
-                locations."/" = { proxyPass = "http://localhost:20000"; };
-              };
+                # locations."/" = { proxyPass = "http://localhost:20000"; };
+                # };
 
-              #TODO How to get htpasswd binary in Nix?
-              virtualisation.oci-containers.containers.restic-server = {
-                image = "restic/rest-server:0.10.0";
-                ports = [ "20000:8000" ];
-                environment = { OPTIONS = "--append-only"; };
-                volumes = [ "/var/lib/backup:/data" ];
-              };
-            })
+                # system.activationScripts.mkBackupVolume =
+                # lib.stringAfter [ "var" ] ''
+                # mkdir -p /var/lib/backup
+                # cp ${secret.keys.htpasswd} /var/lib/backup/.htpasswd
+                # '';
+
+                # services.nginx.virtualHosts.${secret.hostname.backup} = {
+                # # forceSSL = true;
+                # # enableACME = true;
+                # locations."/" = { proxyPass = "http://localhost:20000"; };
+                # };
+
+                # #TODO How to get htpasswd binary in Nix?
+                # virtualisation.oci-containers.containers.restic-server = {
+                # image = "restic/rest-server:0.10.0";
+                # ports = [ "20000:8000" ];
+                # environment = { OPTIONS = "--append-only"; };
+                # volumes = [ "/var/lib/backup:/data" ];
+                # };
+              })
           ];
         });
 
@@ -372,17 +182,41 @@
               boot.kernelPackages = with pkgs; linuxPackages_latest;
             })
             ({ pkgs, config, lib, ... }: {
-              services.nginx.virtualHosts.${"150.230.113.45"} = {
-                locations."/" = { proxyPass = "http://localhost:8080"; };
-              };
+              #TODO reuse cert from rscantonese
+              #REF https://nixos.org/manual/nixos/stable/index.html#module-security-acme-nginx
+
+              services.nginx.virtualHosts.${secret.hostname.jyut.rscantonese} =
+                {
+                  locations."/" = { proxyPass = "http://localhost:8080"; };
+                  forceSSL = true;
+                  enableACME = true;
+                };
+
               virtualisation.oci-containers.containers.jyutping-microservice = {
                 image = "localhost/jyutping-microservice:latest";
                 imageFile =
                   jyutping-tools.packages.${system}.jyutping-microservice-image;
                 environment = { PRODUCTION = "1"; };
                 environmentFiles = [ ];
+                #REF https://github.com/containers/podman/issues/12370
+                # Has to use --net=host in order to make the host machine resolve hostname correctly
+                extraOptions = [ "--net=host" ];
                 ports = [ "8080:8080" ];
               };
+
+              # services.nginx.virtualHosts.${secret.hostname.jyut.ten-degrees} =
+              # {
+              # locations."/" = { proxyPass = "http://localhost:8081"; };
+              # };
+
+              # virtualisation.oci-containers.containers.auto-fetcher = {
+              # image = "docker.io/winston0410/auto-fetcher:c787dfb";
+              # environment = {
+              # PORT = "8081";
+              # };
+              # extraOptions = [ "--net=host" ];
+              # ports = [ "8081:8081" ];
+              # };
             })
           ];
         });

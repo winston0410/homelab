@@ -20,3 +20,11 @@ deploy --magic-rollback false
 [deploy-rs](https://github.com/serokell/deploy-rs)
 
 [agenix](https://github.com/ryantm/agenix)
+
+## Reference
+
+Specific reference to providers
+
+### Oracle Cloud
+
+https://blogs.oracle.com/cloud-infrastructure/post/bring-your-domain-name-to-oracle-cloud-infrastructures-edge-services
