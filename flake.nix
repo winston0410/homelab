@@ -196,7 +196,7 @@
                 image = "localhost/jyutping-microservice:latest";
                 imageFile =
                   jyutping-tools.packages.${system}.jyutping-microservice-image;
-                environment = { PRODUCTION = "1"; };
+                environment = { PRODUCTION = "1"; ALLOWED_ORIGIN = "https://jyut.info"; };
                 environmentFiles = [ ];
                 #REF https://github.com/containers/podman/issues/12370
                 # Has to use --net=host in order to make the host machine resolve hostname correctly

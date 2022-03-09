@@ -176,7 +176,7 @@
         "utils": "utils_2"
       },
       "locked": {
-        "narHash": "sha256-XKuzTXsFwWyo0wvEHNPw+XU+ESWhVnAPGyTTF3oq4V8=",
+        "narHash": "sha256-XyKvFBaI07A5RxVXtLvOptO0HtlotPsNVFpHW/f9wis=",
         "path": "/home/hugosum/jyutping-tools",
         "type": "path"
       },
